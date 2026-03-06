@@ -8,6 +8,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from typing import Dict, List, Callable, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -1046,22 +1047,22 @@ with tab4:
     使用机器学习自动寻找最优因子！
     """)
     
-    # Factor pool
-    st.subheader("📊 因子池")
+    # Use professional factors from the module
+    st.subheader("📊 因子池 (专业模块)")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        use_momentum = st.checkbox("动量因子", value=True)
-        use_rsi = st.checkbox("RSI因子", value=True)
+        use_momentum20 = st.checkbox("动量因子(20日)", value=True)
+        use_momentum60 = st.checkbox("动量因子(60日)", value=True)
+        use_rsi = st.checkbox("RSI因子(14日)", value=True)
         use_volatility = st.checkbox("波动率因子", value=True)
-        use_ma = st.checkbox("均线因子", value=True)
     
     with col2:
         use_macd = st.checkbox("MACD因子", value=True)
-        use_volume = st.checkbox("成交量因子", value=True)
-        use_bb = st.checkbox("布林带因子", value=True)
-        use_momentum_60 = st.checkbox("动量因子(60日)", value=False)
+        use_ma = st.checkbox("均线对齐因子", value=True)
+        use_atr = st.checkbox("ATR因子", value=True)
+        use_pe = st.checkbox("PE因子(简化)", value=False)
     
     # ML settings
     st.subheader("⚙️ ML设置")
@@ -1082,45 +1083,46 @@ with tab4:
             if df_data is not None and len(df_data) > 100:
                 close = df_data['Close']
                 
-                # Calculate all factors
+                # Use professional factor module
+                from factors.factor_research import (
+                    MomentumFactor, ROCFactor, VolatilityFactor, 
+                    ATRFactor, MAAlignmentFactor, MACDFactor, RSIFactor, PEFactor
+                )
+                
                 factors = {}
                 
-                if use_momentum:
-                    factors['Momentum_5'] = close.pct_change(5)
-                    factors['Momentum_10'] = close.pct_change(10)
-                    factors['Momentum_20'] = close.pct_change(20)
+                # Create factor instances and calculate
+                if use_momentum20:
+                    f = MomentumFactor(20)
+                    factors[f.name] = f.calculate(df_data)
+                
+                if use_momentum60:
+                    f = MomentumFactor(60)
+                    factors[f.name] = f.calculate(df_data)
                 
                 if use_rsi:
-                    delta = close.diff()
-                    gain = delta.where(delta > 0, 0).rolling(14).mean()
-                    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-                    factors['RSI'] = 100 - (100 / (1 + gain / loss))
+                    f = RSIFactor(14)
+                    factors[f.name] = f.calculate(df_data)
                 
                 if use_volatility:
-                    factors['Volatility_10'] = close.pct_change().rolling(10).std() * np.sqrt(252)
-                    factors['Volatility_20'] = close.pct_change().rolling(20).std() * np.sqrt(252)
-                
-                if use_ma:
-                    factors['MA5_MA20_Ratio'] = close.rolling(5).mean() / close.rolling(20).mean()
-                    factors['MA20_MA60_Ratio'] = close.rolling(20).mean() / close.rolling(60).mean()
+                    f = VolatilityFactor(20)
+                    factors[f.name] = f.calculate(df_data)
                 
                 if use_macd:
-                    ema12 = close.ewm(span=12).mean()
-                    ema26 = close.ewm(span=26).mean()
-                    factors['MACD'] = ema12 - ema26
-                    factors['MACD_Signal'] = factors['MACD'].ewm(span=9).mean()
+                    f = MACDFactor()
+                    factors[f.name] = f.calculate(df_data)
                 
-                if use_volume:
-                    if 'Volume' in df_data.columns:
-                        factors['Volume_MA20'] = df_data['Volume'] / df_data['Volume'].rolling(20).mean()
+                if use_ma:
+                    f = MAAlignmentFactor(20)
+                    factors[f.name] = f.calculate(df_data)
                 
-                if use_bb:
-                    bb_mid = close.rolling(20).mean()
-                    bb_std = close.rolling(20).std()
-                    factors['BB_Width'] = (bb_mid + 2*bb_std - (bb_mid - 2*bb_std)) / bb_mid
+                if use_atr:
+                    f = ATRFactor(14)
+                    factors[f.name] = f.calculate(df_data)
                 
-                if use_momentum_60:
-                    factors['Momentum_60'] = close.pct_change(60)
+                if use_pe:
+                    f = PEFactor()
+                    factors[f.name] = f.calculate(df_data)
                 
                 # Calculate IC for each factor
                 forward_ret = close.pct_change(forward_days).shift(-forward_days)
