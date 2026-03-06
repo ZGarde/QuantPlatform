@@ -1083,11 +1083,7 @@ with tab4:
             if df_data is not None and len(df_data) > 100:
                 close = df_data['Close']
                 
-                # Use professional factor module
-                from factors.factor_research import (
-                    MomentumFactor, ROCFactor, VolatilityFactor, 
-                    ATRFactor, MAAlignmentFactor, MACDFactor, RSIFactor, PEFactor
-                )
+                # Use professional factors already in app.py
                 
                 factors = {}
                 
