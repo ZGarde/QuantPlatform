@@ -1070,7 +1070,7 @@ with tab4:
     col1, col2 = st.columns(2)
     with col1:
         forward_days = st.slider("预测天数", 1, 60, 5)
-        test_period = st.selectbox("测试周期", ["6mo", "1y", "2y"], index=1)
+        test_period = st.selectbox("测试周期", ["6mo", "1y", "2y", "3y"], index=2)
     
     with col2:
         top_n = st.slider("选择Top N因子", 2, 10, 3)
@@ -1080,7 +1080,7 @@ with tab4:
             # Get data
             df_data = get_data(ticker, test_period)
             
-            if df_data is not None and len(df_data) > 100:
+            if df_data is not None and len(df_data) > 150:
                 close = df_data['Close']
                 
                 # Use professional factors already in app.py
