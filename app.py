@@ -27,6 +27,22 @@ if factors_path not in sys.path:
 
 from factors_calendar import FactorFactory, FactorCalculator
 
+
+# ============ 辅助函数 ============
+def calculate_max_drawdown(portfolio_values):
+    """计算最大回撤
+    portfolio_values: 资金曲线列表
+    返回: 最大回撤 (0-1之间)
+    """
+    if not portfolio_values or len(portfolio_values) < 2:
+        return 0
+    portfolio = np.array(portfolio_values)
+    peak = np.maximum.accumulate(portfolio)
+    drawdown = (peak - portfolio) / peak
+    max_dd = np.max(drawdown)
+    return max_dd
+
+
 st.set_page_config(page_title="Quant Platform", page_icon="📈", layout="wide")
 
 # ============ 侧边栏 ============
@@ -975,15 +991,22 @@ with tab4:
                         ret = (final - initial_cash) / initial_cash
                         bh_ret = (close.iloc[-1] - close.iloc[60]) / close.iloc[60]
                         
-                        c1, c2, c3 = st.columns(3)
+                        # 计算买入持有曲线
+                        bench_norm = close.iloc[60:].values / close.iloc[60] * initial_cash
+                        
+                        # 计算最大回撤
+                        max_dd = calculate_max_drawdown(portfolio)
+                        bh_max_dd = calculate_max_drawdown(bench_norm.tolist())
+                        
+                        c1, c2, c3, c4 = st.columns(4)
                         c1.metric("策略收益", f"{ret*100:+.1f}%")
                         c2.metric("买入持有", f"{bh_ret*100:+.1f}%")
                         c3.metric("超额收益", f"{(ret-bh_ret)*100:+.1f}%")
+                        c4.metric("最大回撤", f"{max_dd*100:.1f}%", delta_color="inverse")
                         
                         # Chart
                         fig, ax = plt.subplots(figsize=(10, 4))
                         ax.plot(portfolio, label='Strategy', linewidth=2)
-                        bench_norm = close.iloc[60:].values / close.iloc[60] * initial_cash
                         ax.plot(bench_norm, alpha=0.5, label='Buy & Hold', linestyle='--')
                         ax.set_title('Calendar Factor Portfolio')
                         ax.legend(['Strategy', 'Buy & Hold'])
@@ -1012,10 +1035,20 @@ with tab4:
                         c6.metric("波动率差异", f"{(strategy_vol - bh_vol)*100:+.2f}%",
                                  delta_color="inverse" if strategy_vol < bh_vol else "normal")
                         
-                        # 交易记录
+                            # 交易记录
                         if trades:
                             st.write(f"📋 Trades: {len(trades)}")
-                            trades_df = pd.DataFrame(trades, columns=['日期', '操作', '价格', '信号'])
+                            # 处理不同长度的交易记录
+                            normalized_trades = []
+                            for t in trades:
+                                if len(t) >= 4:
+                                    normalized_trades.append({
+                                        '日期': t[0],
+                                        '操作': t[1],
+                                        '价格': t[2],
+                                        '原因': t[3] if len(t) > 3 else ''
+                                    })
+                            trades_df = pd.DataFrame(normalized_trades)
                             st.dataframe(trades_df, use_container_width=True)
                         
                         # 显示因子类别分布
@@ -1161,10 +1194,18 @@ with tab4:
                         ret = (final - initial_cash) / initial_cash
                         bh_ret = (close.iloc[-1] - close.iloc[60]) / close.iloc[60]
                         
-                        c1, c2, c3 = st.columns(3)
+                        # 计算买入持有曲线
+                        bench_norm = close.iloc[60:].values / close.iloc[60] * initial_cash
+                        
+                        # 计算最大回撤
+                        max_dd = calculate_max_drawdown(portfolio)
+                        bh_max_dd = calculate_max_drawdown(bench_norm.tolist())
+                        
+                        c1, c2, c3, c4 = st.columns(4)
                         c1.metric("策略收益", f"{ret*100:+.1f}%")
                         c2.metric("买入持有", f"{bh_ret*100:+.1f}%")
                         c3.metric("超额收益", f"{(ret-bh_ret)*100:+.1f}%")
+                        c4.metric("最大回撤", f"{max_dd*100:.1f}%", delta_color="inverse")
                         
                         # 计算波动率
                         import numpy as np
@@ -1335,12 +1376,18 @@ with tab4:
                     
                     # Benchmark
                     bh_ret = (close.iloc[-1] - close.iloc[60]) / close.iloc[60]
+                    bench_norm = close.iloc[60:].values / close.iloc[60] * initial_cash
+                    
+                    # 计算最大回撤
+                    max_dd = calculate_max_drawdown(portfolio)
+                    bh_max_dd = calculate_max_drawdown(bench_norm.tolist())
                     
                     # Results
-                    c1, c2, c3 = st.columns(3)
+                    c1, c2, c3, c4 = st.columns(4)
                     c1.metric("策略收益", f"{ret*100:+.1f}%")
                     c2.metric("买入持有", f"{bh_ret*100:+.1f}%")
                     c3.metric("超额收益", f"{(ret-bh_ret)*100:+.1f}%")
+                    c4.metric("最大回撤", f"{max_dd*100:.1f}%", delta_color="inverse")
                     
                     # Chart
                     fig, ax = plt.subplots(figsize=(10, 4))
