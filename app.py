@@ -959,11 +959,21 @@ with tab4:
                         c2.metric("买入持有", f"{bh_ret*100:+.1f}%")
                         c3.metric("超额收益", f"{(ret-bh_ret)*100:+.1f}%")
                         
+                        # Chart
+                        fig, ax = plt.subplots(figsize=(10, 4))
+                        ax.plot(portfolio, label='Strategy', linewidth=2)
+                        bench_norm = close.iloc[60:].values / close.iloc[60] * initial_cash
+                        ax.plot(bench_norm, alpha=0.5, label='Buy & Hold', linestyle='--')
+                        ax.set_title('Calendar Factor Portfolio')
+                        ax.legend(['Strategy', 'Buy & Hold'])
+                        ax.grid(True, alpha=0.3)
+                        st.pyplot(fig)
+                        
                         # 计算波动率
                         import numpy as np
                         
                         # 策略收益序列
-                        portfolio_arr = np.array(portfolio[1:])  # 去掉第一个
+                        portfolio_arr = np.array(portfolio[1:])
                         strategy_returns = np.diff(portfolio_arr) / portfolio_arr[:-1]
                         strategy_returns = strategy_returns[~np.isnan(strategy_returns) & ~np.isinf(strategy_returns)]
                         strategy_vol = np.std(strategy_returns, ddof=1) * np.sqrt(252) if len(strategy_returns) > 0 else 0
@@ -978,18 +988,8 @@ with tab4:
                         c4, c5, c6 = st.columns(3)
                         c4.metric("策略波动率", f"{strategy_vol*100:.2f}%")
                         c5.metric("买入持有波动率", f"{bh_vol*100:.2f}%")
-                        c6.metric("波动率差异", f"{(strategy_vol - bh_vol)*100:+.2f}%", 
+                        c6.metric("波动率差异", f"{(strategy_vol - bh_vol)*100:+.2f}%",
                                  delta_color="inverse" if strategy_vol < bh_vol else "normal")
-                        
-                        # Chart
-                        fig, ax = plt.subplots(figsize=(10, 4))
-                        ax.plot(portfolio, label='Strategy', linewidth=2)
-                        bench_norm = close.iloc[60:].values / close.iloc[60] * initial_cash
-                        ax.plot(bench_norm, alpha=0.5, label='Buy & Hold', linestyle='--')
-                        ax.set_title('Calendar Factor Portfolio')
-                        ax.legend(['Strategy', 'Buy & Hold'])
-                        ax.grid(True, alpha=0.3)
-                        st.pyplot(fig)
                         
                         # 交易记录
                         if trades:
@@ -1154,6 +1154,23 @@ with tab4:
                         ax.legend()
                         ax.grid(True, alpha=0.3)
                         st.pyplot(fig)
+                        
+                        # 计算波动率 (第二个回测)
+                        portfolio_arr2 = np.array(portfolio[1:])
+                        strategy_returns2 = np.diff(portfolio_arr2) / portfolio_arr2[:-1]
+                        strategy_returns2 = strategy_returns2[~np.isnan(strategy_returns2) & ~np.isinf(strategy_returns2)]
+                        strategy_vol2 = np.std(strategy_returns2, ddof=1) * np.sqrt(252) if len(strategy_returns2) > 0 else 0
+                        
+                        bench_arr2 = bench_norm[1:]
+                        bh_returns2 = np.diff(bench_arr2) / bench_arr2[:-1]
+                        bh_returns2 = bh_returns2[~np.isnan(bh_returns2) & ~np.isinf(bh_returns2)]
+                        bh_vol2 = np.std(bh_returns2, ddof=1) * np.sqrt(252) if len(bh_returns2) > 0 else 0
+                        
+                        c7, c8, c9 = st.columns(3)
+                        c7.metric("策略波动率", f"{strategy_vol2*100:.2f}%")
+                        c8.metric("买入持有波动率", f"{bh_vol2*100:.2f}%")
+                        c9.metric("波动率差异", f"{(strategy_vol2 - bh_vol2)*100:+.2f}%",
+                                 delta_color="inverse" if strategy_vol2 < bh_vol2 else "normal")
                         
                         if trades:
                             st.write(f"Trades: {len(trades)}")
