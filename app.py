@@ -959,6 +959,28 @@ with tab4:
                         c2.metric("买入持有", f"{bh_ret*100:+.1f}%")
                         c3.metric("超额收益", f"{(ret-bh_ret)*100:+.1f}%")
                         
+                        # 计算波动率
+                        import numpy as np
+                        
+                        # 策略收益序列
+                        portfolio_arr = np.array(portfolio[1:])  # 去掉第一个
+                        strategy_returns = np.diff(portfolio_arr) / portfolio_arr[:-1]
+                        strategy_returns = strategy_returns[~np.isnan(strategy_returns) & ~np.isinf(strategy_returns)]
+                        strategy_vol = np.std(strategy_returns, ddof=1) * np.sqrt(252) if len(strategy_returns) > 0 else 0
+                        
+                        # Buy & Hold 收益序列
+                        bench_arr = bench_norm[1:]
+                        bh_returns = np.diff(bench_arr) / bench_arr[:-1]
+                        bh_returns = bh_returns[~np.isnan(bh_returns) & ~np.isinf(bh_returns)]
+                        bh_vol = np.std(bh_returns, ddof=1) * np.sqrt(252) if len(bh_returns) > 0 else 0
+                        
+                        # 显示波动率
+                        c4, c5, c6 = st.columns(3)
+                        c4.metric("策略波动率", f"{strategy_vol*100:.2f}%")
+                        c5.metric("买入持有波动率", f"{bh_vol*100:.2f}%")
+                        c6.metric("波动率差异", f"{(strategy_vol - bh_vol)*100:+.2f}%", 
+                                 delta_color="inverse" if strategy_vol < bh_vol else "normal")
+                        
                         # Chart
                         fig, ax = plt.subplots(figsize=(10, 4))
                         ax.plot(portfolio, label='Strategy', linewidth=2)
@@ -1101,6 +1123,28 @@ with tab4:
                         c1.metric("策略收益", f"{ret*100:+.1f}%")
                         c2.metric("买入持有", f"{bh_ret*100:+.1f}%")
                         c3.metric("超额收益", f"{(ret-bh_ret)*100:+.1f}%")
+                        
+                        # 计算波动率
+                        import numpy as np
+                        
+                        # 策略收益序列
+                        portfolio_arr = np.array(portfolio[1:])
+                        strategy_returns = np.diff(portfolio_arr) / portfolio_arr[:-1]
+                        strategy_returns = strategy_returns[~np.isnan(strategy_returns) & ~np.isinf(strategy_returns)]
+                        strategy_vol = np.std(strategy_returns, ddof=1) * np.sqrt(252) if len(strategy_returns) > 0 else 0
+                        
+                        # Buy & Hold 收益序列
+                        bench_arr = bench_norm[1:]
+                        bh_returns = np.diff(bench_arr) / bench_arr[:-1]
+                        bh_returns = bh_returns[~np.isnan(bh_returns) & ~np.isinf(bh_returns)]
+                        bh_vol = np.std(bh_returns, ddof=1) * np.sqrt(252) if len(bh_returns) > 0 else 0
+                        
+                        # 显示波动率
+                        c4, c5, c6 = st.columns(3)
+                        c4.metric("策略波动率", f"{strategy_vol*100:.2f}%")
+                        c5.metric("买入持有波动率", f"{bh_vol*100:.2f}%")
+                        c6.metric("波动率差异", f"{(strategy_vol - bh_vol)*100:+.2f}%",
+                                 delta_color="inverse" if strategy_vol < bh_vol else "normal")
                         
                         fig, ax = plt.subplots(figsize=(10, 4))
                         ax.plot(portfolio, label='Strategy')
