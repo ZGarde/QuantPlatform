@@ -917,6 +917,7 @@ with tab4:
                         st.subheader("📊 组合回测（IC加权）")
                         cash = initial_cash
                         position = 0
+                        entry_price = 0  # 入场价格，用于计算止损止盈
                         portfolio = [initial_cash]
                         trades = []
                         
@@ -928,22 +929,42 @@ with tab4:
                                 portfolio.append(portfolio[-1])
                                 continue
                             
+                            # 止损/止盈检查
+                            if position > 0 and entry_price > 0:
+                                pnl_pct = (price - entry_price) / entry_price
+                                # 止损触发
+                                if pnl_pct <= -stop_loss:
+                                    proceeds = position * price * (1 - fee_rate - slippage)
+                                    cash += proceeds
+                                    trades.append((df_data.index[i], 'SELL', price, round(signal, 3), 'SL'))
+                                    position = 0
+                                    entry_price = 0
+                                # 止盈触发
+                                elif pnl_pct >= take_profit:
+                                    proceeds = position * price * (1 - fee_rate - slippage)
+                                    cash += proceeds
+                                    trades.append((df_data.index[i], 'SELL', price, round(signal, 3), 'TP'))
+                                    position = 0
+                                    entry_price = 0
+                            
                             # 买入信号
-                            if signal > signal_threshold and position == 0:
+                            if position == 0 and signal > signal_threshold:
                                 shares = int(cash * max_position / price)
                                 if shares > 0:
                                     cost = shares * price * (1 + fee_rate + slippage)
                                     if cost <= cash:
                                         cash -= cost
                                         position = shares
+                                        entry_price = price  # 记录入场价
                                         trades.append((df_data.index[i], 'BUY', price, round(signal, 3)))
                             
                             # 卖出信号
-                            elif signal < sell_threshold and position > 0:
+                            elif position > 0 and signal < sell_threshold:
                                 proceeds = position * price * (1 - fee_rate - slippage)
                                 cash += proceeds
-                                trades.append((df_data.index[i], 'SELL', price, round(signal, 3)))
+                                trades.append((df_data.index[i], 'SELL', price, round(signal, 3), 'SIGNAL'))
                                 position = 0
+                                entry_price = 0
                             
                             portfolio.append(cash + position * price)
                         
@@ -1088,6 +1109,7 @@ with tab4:
                         st.subheader("📊 组合策略回测")
                         cash = initial_cash
                         position = 0
+                        entry_price = 0
                         portfolio = [initial_cash]
                         trades = []
                         
@@ -1098,17 +1120,37 @@ with tab4:
                             if pd.isna(signal):
                                 continue
                             
-                            if signal > 0.2 and position == 0:
+                            # 止损/止盈检查
+                            if position > 0 and entry_price > 0:
+                                pnl_pct = (price - entry_price) / entry_price
+                                # 止损触发
+                                if pnl_pct <= -stop_loss:
+                                    proceeds = position * price * (1 - fee_rate - slippage)
+                                    cash += proceeds
+                                    trades.append((df_data.index[i], 'SELL', price, 'SL'))
+                                    position = 0
+                                    entry_price = 0
+                                # 止盈触发
+                                elif pnl_pct >= take_profit:
+                                    proceeds = position * price * (1 - fee_rate - slippage)
+                                    cash += proceeds
+                                    trades.append((df_data.index[i], 'SELL', price, 'TP'))
+                                    position = 0
+                                    entry_price = 0
+                            
+                            if position == 0 and signal > signal_threshold:
                                 shares = int(cash * max_position / price) + 1
                                 if shares > 0:
                                     cash -= shares * price * (1 + fee_rate + slippage)
                                     position = shares
+                                    entry_price = price
                                     trades.append((df_data.index[i], 'BUY', price))
                             
-                            elif signal < -0.2 and position > 0:
+                            elif position > 0 and signal < sell_threshold:
                                 cash += position * price * (1 - fee_rate - slippage)
-                                trades.append((df_data.index[i], 'SELL', price))
+                                trades.append((df_data.index[i], 'SELL', price, 'SIGNAL'))
                                 position = 0
+                                entry_price = 0
                             
                             portfolio.append(cash + position * price)
                         
