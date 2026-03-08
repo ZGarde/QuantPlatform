@@ -17,7 +17,14 @@ plt.rcParams['axes.unicode_minus'] = False
 
 # 导入因子日历模块
 import sys
-sys.path.append('factors/calendar')
+import os
+
+# 添加因子模块路径
+module_dir = os.path.dirname(os.path.abspath(__file__))
+factors_path = os.path.join(module_dir, 'factors', 'calendar')
+if factors_path not in sys.path:
+    sys.path.insert(0, factors_path)
+
 from factors_calendar import FactorFactory, FactorCalculator
 
 st.set_page_config(page_title="Quant Platform", page_icon="📈", layout="wide")
@@ -876,12 +883,34 @@ with tab4:
                         
                         # 显示信号分布
                         st.subheader("📊 信号分布")
+                        
+                        # 解释信号含义
+                        with st.expander("📖 信号分布说明"):
+                            st.markdown("""
+                            **什么是信号分布？**
+                            - X轴：IC加权因子得分（综合评分）
+                            - Y轴：出现次数
+                            
+                            **如何解读？**
+                            - **红色线(买入阈值)**: 得分高于此值 → 买入信号
+                            - **绿色线(卖出阈值)**: 得分低于此值 → 卖出信号
+                            
+                            **得分分布**:
+                            - 大部分得分在0附近（中性）
+                            - 得分越高 → 因子组合越看好
+                            - 得分越低 → 因子组合越看跌
+                            """)
+                        
                         fig_sig, ax_sig = plt.subplots(figsize=(10, 3))
-                        ax_sig.hist(weighted_signal.dropna(), bins=50, edgecolor='black', alpha=0.7)
-                        ax_sig.axvline(x=signal_threshold, color='r', linestyle='--', label=f'Buy Threshold: {signal_threshold}')
-                        ax_sig.axvline(x=sell_threshold, color='g', linestyle='--', label=f'Sell Threshold: {sell_threshold}')
-                        ax_sig.set_title('Signal Distribution')
-                        ax_sig.legend()
+                        ax_sig.hist(weighted_signal.dropna(), bins=50, edgecolor='black', alpha=0.7, color='steelblue')
+                        ax_sig.axvline(x=signal_threshold, color='r', linestyle='--', linewidth=2, label=f'Buy: {signal_threshold}')
+                        ax_sig.axvline(x=sell_threshold, color='g', linestyle='--', linewidth=2, label=f'Sell: {sell_threshold}')
+                        ax_sig.axvline(x=0, color='gray', linestyle='-', linewidth=1, alpha=0.5, label='Neutral: 0')
+                        ax_sig.set_xlabel('Composite Factor Score')
+                        ax_sig.set_ylabel('Frequency')
+                        ax_sig.set_title('IC-Weighted Signal Distribution')
+                        ax_sig.legend(loc='upper right')
+                        ax_sig.grid(True, alpha=0.3)
                         st.pyplot(fig_sig)
                         
                         # Backtest with weighted signal
